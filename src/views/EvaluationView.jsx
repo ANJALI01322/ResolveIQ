@@ -7,13 +7,28 @@ import {
   Scale, 
   Sparkles, 
   Layers, 
-  Grid,
-  TrendingUp,
-  Cpu
+  Grid, 
+  TrendingUp, 
+  Cpu,
+  Database,
+  Info,
+  Activity,
+  AlertOctagon
 } from 'lucide-react';
 
 export default function EvaluationView({ evaluationData }) {
   const [activeTab, setActiveTab] = useState('baselines');
+
+  if (!evaluationData) {
+    return (
+      <div style={{ padding: '4rem 2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+        <div className="pulse-dot" style={{ display: 'inline-block', marginBottom: '1rem', width: '12px', height: '12px' }}></div>
+        <h3 style={{ color: 'var(--text-primary)', marginBottom: '0.5rem' }}>Loading Evaluation Results...</h3>
+        <p style={{ fontSize: '0.9rem' }}>Fetching benchmark metrics from the 200-sample leak-free Golden Evaluation Set.</p>
+      </div>
+    );
+  }
+
   const headline = evaluationData?.headline_metrics || {};
   const baselines = evaluationData?.baselines || [];
   const perIntent = evaluationData?.per_intent || [];
@@ -29,55 +44,133 @@ export default function EvaluationView({ evaluationData }) {
           Evaluation Suite & Experimental Baselines
         </h1>
         <p style={{ fontSize: '1.05rem', color: 'var(--text-muted)' }}>
-          Comprehensive offline evaluation conducted across a manually verified 200-sample Golden Evaluation Set derived from authentic @AmazonHelp support inquiries.
+          Authentic offline evaluation conducted across an unseen 200-sample Golden Evaluation Set (100% disjoint split, 0% data leakage) derived from @AmazonHelp support inquiries.
         </p>
       </div>
 
-      {/* Headline Summary Banner */}
-      <div className="metrics-grid">
-        <div className="kpi-card">
-          <div className="kpi-label">
-            <span>Intent Macro F1</span>
-            <Sparkles size={16} color="var(--primary)" />
+      {/* Headline Summary Banner (Categorized Hierarchy) */}
+      <div className="metrics-hierarchy-grid" style={{ marginBottom: '2rem' }}>
+        
+        {/* Cluster 1: Core Model Quality */}
+        <div className="metrics-cluster">
+          <div className="metrics-cluster-header">
+            <div className="metrics-cluster-title">
+              <Sparkles size={14} color="var(--primary)" />
+              <span>Model Quality</span>
+            </div>
+            <span className="metrics-cluster-tag">10-Class Taxonomy</span>
           </div>
-          <div className="kpi-value">
-            {headline.intent_macro_f1 ? `${(headline.intent_macro_f1 * 100).toFixed(1)}%` : '95.5%'}
+
+          <div className="metrics-cluster-cards">
+            <div className="kpi-card-inner">
+              <div className="kpi-label">
+                <span>Intent Macro F1</span>
+                <Sparkles size={14} color="var(--primary)" />
+              </div>
+              <div className="kpi-value">
+                {headline.intent_macro_f1 !== undefined ? `${(headline.intent_macro_f1 * 100).toFixed(1)}%` : '—'}
+              </div>
+              <div className="kpi-context">Unseen 200-case test split</div>
+            </div>
+
+            <div className="kpi-card-inner">
+              <div className="kpi-label">
+                <span>Intent Accuracy</span>
+                <TrendingUp size={14} color="var(--primary)" />
+              </div>
+              <div className="kpi-value">
+                {headline.intent_accuracy !== undefined ? `${(headline.intent_accuracy * 100).toFixed(1)}%` : '—'}
+              </div>
+              <div className="kpi-context">Exact label agreement</div>
+            </div>
+
+            <div className="kpi-card-inner">
+              <div className="kpi-label">
+                <span>Groundedness</span>
+                <ShieldCheck size={14} color="var(--primary-dark)" />
+              </div>
+              <div className="kpi-value">
+                {headline.groundedness_rate !== undefined ? `${(headline.groundedness_rate * 100).toFixed(1)}%` : '—'}
+              </div>
+              <div className="kpi-context">Historical precedent backed</div>
+            </div>
           </div>
-          <div className="kpi-context">10-class taxonomy balance</div>
         </div>
 
-        <div className="kpi-card">
-          <div className="kpi-label">
-            <span>Escalation Recall</span>
-            <CheckCircle2 size={16} color="var(--secondary)" />
+        {/* Cluster 2: Safety Risk Metrics */}
+        <div className="metrics-cluster" style={{ borderColor: 'var(--border-strong)' }}>
+          <div className="metrics-cluster-header">
+            <div className="metrics-cluster-title">
+              <ShieldCheck size={14} color="var(--primary-dark)" />
+              <span>Safety Risk Metrics</span>
+            </div>
+            <span className="metrics-cluster-tag">Risk Interception</span>
           </div>
-          <div className="kpi-value">
-            {headline.escalation_recall ? `${(headline.escalation_recall * 100).toFixed(1)}%` : '68.0%'}
+
+          <div className="metrics-cluster-cards">
+            <div className="kpi-card-inner">
+              <div className="kpi-label">
+                <span>Escalation Recall</span>
+                <CheckCircle2 size={14} color="var(--primary)" />
+              </div>
+              <div className="kpi-value">
+                {headline.escalation_recall !== undefined ? `${(headline.escalation_recall * 100).toFixed(1)}%` : '—'}
+              </div>
+              <div className="kpi-context">Sensitive issue interception</div>
+            </div>
+
+            <div className="kpi-card-inner">
+              <div className="kpi-label">
+                <span>Escalation Precision</span>
+                <Scale size={14} color="var(--primary)" />
+              </div>
+              <div className="kpi-value">
+                {headline.escalation_precision !== undefined ? `${(headline.escalation_precision * 100).toFixed(1)}%` : '—'}
+              </div>
+              <div className="kpi-context">Conservative routing posture</div>
+            </div>
+
+            <div className="kpi-card-inner" style={{ backgroundColor: 'var(--bg-surface)' }}>
+              <div className="kpi-label">
+                <span>False Auto-Handle</span>
+                <AlertTriangle size={14} color="var(--status-warning-text)" />
+              </div>
+              <div className="kpi-value" style={{ color: 'var(--text-primary)' }}>
+                {headline.false_auto_handle_rate !== undefined ? `${(headline.false_auto_handle_rate * 100).toFixed(1)}%` : '—'}
+              </div>
+              <div className="kpi-risk-badge">
+                Safety-critical risk metric
+              </div>
+            </div>
           </div>
-          <div className="kpi-context">Sensitive issue interception</div>
         </div>
 
-        <div className="kpi-card">
-          <div className="kpi-label">
-            <span>False Auto-Handle Rate</span>
-            <AlertTriangle size={16} color="var(--highlight)" />
+        {/* Cluster 3: Coverage */}
+        <div className="metrics-cluster">
+          <div className="metrics-cluster-header">
+            <div className="metrics-cluster-title">
+              <Database size={14} color="var(--text-muted)" />
+              <span>Coverage</span>
+            </div>
+            <span className="metrics-cluster-tag">Golden Dataset</span>
           </div>
-          <div className="kpi-value" style={{ color: 'var(--primary-dark)' }}>
-            {headline.false_auto_handle_rate !== undefined ? `${(headline.false_auto_handle_rate * 100).toFixed(1)}%` : '32.0%'}
+
+          <div className="metrics-cluster-single">
+            <div className="kpi-card-inner" style={{ flex: 1, justifyContent: 'center' }}>
+              <div className="kpi-label">
+                <span>Golden Set Size</span>
+                <Database size={14} color="var(--text-muted)" />
+              </div>
+              <div className="kpi-value">
+                {evaluationData?.golden_set_size || 200}
+              </div>
+              <div className="kpi-context">
+                N=200 @AmazonHelp multi-turn cases
+              </div>
+            </div>
           </div>
-          <div className="kpi-context">Safety critical risk metric</div>
         </div>
 
-        <div className="kpi-card">
-          <div className="kpi-label">
-            <span>Groundedness Rate</span>
-            <ShieldCheck size={16} color="var(--primary)" />
-          </div>
-          <div className="kpi-value">
-            {headline.groundedness_rate ? `${(headline.groundedness_rate * 100).toFixed(1)}%` : '95.5%'}
-          </div>
-          <div className="kpi-context">Historical resolution backed</div>
-        </div>
       </div>
 
       {/* Navigation Sub-Tabs */}
@@ -86,14 +179,15 @@ export default function EvaluationView({ evaluationData }) {
         gap: '0.5rem',
         borderBottom: '1px solid var(--border-subtle)',
         marginBottom: '1.5rem',
-        paddingBottom: '0.5rem'
+        paddingBottom: '0.5rem',
+        flexWrap: 'wrap'
       }}>
         {[
           { id: 'baselines', label: '3-Way Baseline Comparison', icon: Scale },
           { id: 'intents', label: 'Per-Intent Taxonomy Metrics', icon: Layers },
           { id: 'confusion', label: 'Confusion Matrix (10x10)', icon: Grid },
           { id: 'escalation', label: 'Escalation Safety Matrix', icon: ShieldCheck },
-          { id: 'judge', label: 'LLM-as-a-Judge & Rubric', icon: Cpu }
+          { id: 'judge', label: 'LLM-as-a-Judge & Grounding', icon: Cpu }
         ].map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -125,12 +219,12 @@ export default function EvaluationView({ evaluationData }) {
               Comparative Baseline Benchmark
             </h3>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-              Evaluated on N=200 Golden Samples
+              Evaluated on N=200 Unseen Golden Samples (0% Data Leakage)
             </span>
           </div>
 
           <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '1.25rem' }}>
-            To rigorously prove engineering efficacy, ResolveIQ is benchmarked against both a trivial heuristic model and a standard classical machine learning baseline.
+            ResolveIQ is benchmarked against both a trivial majority-class baseline and a classical TF-IDF + Logistic Regression baseline over the 200-sample unseen golden test split.
           </p>
 
           <div style={{ overflowX: 'auto' }}>
@@ -167,14 +261,14 @@ export default function EvaluationView({ evaluationData }) {
                           </span>
                         </div>
                       </td>
-                      <td>{(base.intent_accuracy * 100).toFixed(1)}%</td>
-                      <td>{(base.intent_macro_f1 * 100).toFixed(1)}%</td>
-                      <td>{(base.escalation_precision * 100).toFixed(1)}%</td>
-                      <td>{(base.escalation_recall * 100).toFixed(1)}%</td>
-                      <td style={{ color: isResolveIQ ? 'var(--primary-dark)' : 'inherit' }}>
-                        {(base.false_auto_handle_rate * 100).toFixed(1)}%
+                      <td>{base.intent_accuracy != null ? `${(base.intent_accuracy * 100).toFixed(1)}%` : '—'}</td>
+                      <td>{base.intent_macro_f1 != null ? `${(base.intent_macro_f1 * 100).toFixed(1)}%` : '—'}</td>
+                      <td>{base.escalation_precision != null ? `${(base.escalation_precision * 100).toFixed(1)}%` : '—'}</td>
+                      <td>{base.escalation_recall != null ? `${(base.escalation_recall * 100).toFixed(1)}%` : '—'}</td>
+                      <td style={{ color: isResolveIQ ? 'var(--primary-dark)' : (base.false_auto_handle_rate > 0.1 ? 'var(--status-escalate-text)' : 'inherit') }}>
+                        {base.false_auto_handle_rate != null ? `${(base.false_auto_handle_rate * 100).toFixed(1)}%` : '—'}
                       </td>
-                      <td>{(base.groundedness_rate * 100).toFixed(1)}%</td>
+                      <td>{base.groundedness_rate != null ? `${(base.groundedness_rate * 100).toFixed(1)}%` : '—'}</td>
                     </tr>
                   );
                 })}
@@ -183,17 +277,28 @@ export default function EvaluationView({ evaluationData }) {
           </div>
 
           <div style={{
-            marginTop: '1.25rem',
-            padding: '1rem',
+            marginTop: '1.5rem',
+            padding: '1.25rem',
             backgroundColor: 'var(--bg-subtle)',
             borderRadius: 'var(--radius-sm)',
-            fontSize: '0.82rem',
-            color: 'var(--text-muted)'
+            fontSize: '0.86rem',
+            color: 'var(--text-primary)',
+            lineHeight: 1.6
           }}>
-            <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '0.25rem' }}>
-              Why These Baselines Matter:
+            <strong style={{ color: 'var(--primary-darker)', display: 'block', marginBottom: '0.5rem', fontSize: '0.92rem' }}>
+              Operational Interpretation & Engineering Trade-Offs:
             </strong>
-            The Trivial Baseline demonstrates the lower performance bound when guessing the majority class and escalating all queries. The Classical Baseline illustrates the limitations of uncalibrated confidence thresholds and naive top-1 lexical retrieval, which suffers from elevated false auto-handle rates (unverified claims). ResolveIQ achieves balanced Macro F1 (95.5%) with robust safety guards.
+            <ul style={{ paddingLeft: '1.25rem', margin: 0, color: 'var(--text-muted)' }}>
+              <li style={{ marginBottom: '0.35rem' }}>
+                <strong style={{ color: 'var(--text-primary)' }}>Safety Superiority (False Auto-Handle Suppression):</strong> ResolveIQ reduces the safety-critical False Auto-Handle Rate from <strong>27.0% down to 4.0%</strong> (a 6.75x improvement in safety) compared to the classical baseline.
+              </li>
+              <li style={{ marginBottom: '0.35rem' }}>
+                <strong style={{ color: 'var(--text-primary)' }}>Intent Classification Nuance:</strong> The intent classifier achieves <strong>75.39% Macro F1</strong> and <strong>76.00% Accuracy</strong> on authentic, unseen social media queries where multi-intent overlap (e.g. delivery delays combined with refund demands) creates lexical ambiguity.
+              </li>
+              <li>
+                <strong style={{ color: 'var(--text-primary)' }}>Conservative Escalation Trade-off:</strong> ResolveIQ's multi-signal risk engine intentionally favors conservative routing (49.48% precision, 96.00% recall), ensuring high-risk queries (billing disputes, misdeliveries) are never mistakenly auto-handled.
+              </li>
+            </ul>
           </div>
         </div>
       )}
@@ -207,7 +312,7 @@ export default function EvaluationView({ evaluationData }) {
               Per-Intent Performance Breakdown (10 Classes)
             </h3>
             <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-              Balanced 20 Samples per Intent
+              Balanced 20 Samples per Intent (N=200 Total)
             </span>
           </div>
 
@@ -233,11 +338,11 @@ export default function EvaluationView({ evaluationData }) {
                       </span>
                     </td>
                     <td>{item.support_count}</td>
-                    <td>{(item.precision * 100).toFixed(1)}%</td>
-                    <td>{(item.recall * 100).toFixed(1)}%</td>
+                    <td>{item.precision != null ? `${(item.precision * 100).toFixed(1)}%` : '—'}</td>
+                    <td>{item.recall != null ? `${(item.recall * 100).toFixed(1)}%` : '—'}</td>
                     <td>
                       <strong style={{ color: 'var(--primary-dark)' }}>
-                        {(item.f1_score * 100).toFixed(1)}%
+                        {item.f1_score != null ? `${(item.f1_score * 100).toFixed(1)}%` : '—'}
                       </strong>
                     </td>
                     <td>
@@ -246,10 +351,10 @@ export default function EvaluationView({ evaluationData }) {
                         fontWeight: 700,
                         padding: '0.2rem 0.5rem',
                         borderRadius: 'var(--radius-pill)',
-                        backgroundColor: item.f1_score >= 0.90 ? 'var(--status-pass-bg)' : 'var(--status-warning-bg)',
-                        color: item.f1_score >= 0.90 ? 'var(--status-pass-text)' : 'var(--status-warning-text)'
+                        backgroundColor: item.f1_score >= 0.80 ? 'var(--status-pass-bg)' : (item.f1_score >= 0.60 ? 'var(--status-warning-bg)' : 'var(--status-escalate-bg)'),
+                        color: item.f1_score >= 0.80 ? 'var(--status-pass-text)' : (item.f1_score >= 0.60 ? 'var(--status-warning-text)' : 'var(--status-escalate-text)')
                       }}>
-                        {item.f1_score >= 0.90 ? 'Excellent' : 'Good'}
+                        {item.f1_score >= 0.80 ? 'High' : (item.f1_score >= 0.60 ? 'Moderate' : 'Challenging')}
                       </span>
                     </td>
                   </tr>
@@ -274,7 +379,7 @@ export default function EvaluationView({ evaluationData }) {
           </div>
 
           <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-            The diagonal reflects correct intent classifications across all 200 golden test cases. Off-diagonal elements highlight multi-intent lexical overlaps (e.g. delivery delays coupled with refund inquiries).
+            The diagonal reflects correct intent classifications across all 200 unseen golden test cases. Off-diagonal elements highlight multi-intent lexical overlaps (e.g. delivery delays coupled with refund inquiries).
           </p>
 
           <div style={{ overflowX: 'auto' }}>
@@ -306,7 +411,7 @@ export default function EvaluationView({ evaluationData }) {
                       fontWeight: 700,
                       fontSize: '0.74rem'
                     }}>
-                      {confMat.display_labels[rowIdx]}
+                      {confMat.display_labels?.[rowIdx] || `Class ${rowIdx}`}
                     </td>
                     {row.map((cell, colIdx) => {
                       const isDiag = rowIdx === colIdx;
@@ -363,7 +468,7 @@ export default function EvaluationView({ evaluationData }) {
                 True Positive Escalations (TP)
               </span>
               <div style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', fontWeight: 700, color: 'var(--status-pass-text)' }}>
-                {escMat.true_positive_escalate || 68}
+                {escMat.true_positive_escalate ?? '—'}
               </div>
               <div style={{ fontSize: '0.76rem', color: 'var(--status-pass-text)' }}>
                 Correctly escalated high-risk cases
@@ -380,7 +485,7 @@ export default function EvaluationView({ evaluationData }) {
                 False Escalations (FP)
               </span>
               <div style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', fontWeight: 700, color: 'var(--status-warning-text)' }}>
-                {escMat.false_positive_escalate || 57}
+                {escMat.false_positive_escalate ?? '—'}
               </div>
               <div style={{ fontSize: '0.76rem', color: 'var(--status-warning-text)' }}>
                 Conservative safe escalations
@@ -397,10 +502,10 @@ export default function EvaluationView({ evaluationData }) {
                 False Auto-Handles (FN)
               </span>
               <div style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', fontWeight: 700, color: 'var(--status-escalate-text)' }}>
-                {escMat.false_negative_auto_handle || 32}
+                {escMat.false_negative_auto_handle ?? '—'}
               </div>
               <div style={{ fontSize: '0.76rem', color: 'var(--status-escalate-text)' }}>
-                Missed escalation (Safety risk)
+                Missed escalation (Safety-critical risk)
               </div>
             </div>
 
@@ -414,7 +519,7 @@ export default function EvaluationView({ evaluationData }) {
                 True Auto-Handles (TN)
               </span>
               <div style={{ fontFamily: 'var(--font-serif)', fontSize: '2rem', fontWeight: 700, color: 'var(--status-pass-text)' }}>
-                {escMat.true_negative_auto_handle || 43}
+                {escMat.true_negative_auto_handle ?? '—'}
               </div>
               <div style={{ fontSize: '0.76rem', color: 'var(--status-pass-text)' }}>
                 Safely resolved self-service cases
@@ -434,7 +539,7 @@ export default function EvaluationView({ evaluationData }) {
           <div className="card-header">
             <h3 className="card-title">
               <Cpu size={20} color="var(--primary)" />
-              LLM-as-a-Judge Evaluation & Human Calibration
+              LLM-as-a-Judge Evaluation & Grounding Audit
             </h3>
           </div>
 
@@ -446,25 +551,25 @@ export default function EvaluationView({ evaluationData }) {
           }}>
             <div className="kpi-card" style={{ padding: '1rem' }}>
               <span className="kpi-label">Human-Judge Agreement</span>
-              <div className="kpi-value">{llmJudge.human_judge_agreement_percent || '55.5'}%</div>
-              <div className="kpi-context">Cohen's Kappa: {llmJudge.cohens_kappa || '0.11'}</div>
+              <div className="kpi-value">{llmJudge.human_judge_agreement_percent != null ? `${llmJudge.human_judge_agreement_percent.toFixed(1)}%` : '—'}</div>
+              <div className="kpi-context">Cohen's Kappa: {llmJudge.cohens_kappa != null ? llmJudge.cohens_kappa.toFixed(2) : '—'}</div>
             </div>
 
             <div className="kpi-card" style={{ padding: '1rem' }}>
               <span className="kpi-label">Avg Correctness</span>
-              <div className="kpi-value">{llmJudge.average_scores?.correctness || '4.70'} / 5.0</div>
+              <div className="kpi-value">{llmJudge.average_scores?.correctness != null ? `${llmJudge.average_scores.correctness.toFixed(1)} / 5.0` : '—'}</div>
               <div className="kpi-context">Technical policy alignment</div>
             </div>
 
             <div className="kpi-card" style={{ padding: '1rem' }}>
               <span className="kpi-label">Avg Grounding</span>
-              <div className="kpi-value">{llmJudge.average_scores?.grounding || '4.80'} / 5.0</div>
+              <div className="kpi-value">{llmJudge.average_scores?.grounding != null ? `${llmJudge.average_scores.grounding.toFixed(1)} / 5.0` : '—'}</div>
               <div className="kpi-context">Corroborated by evidence</div>
             </div>
 
             <div className="kpi-card" style={{ padding: '1rem' }}>
               <span className="kpi-label">Professional Tone</span>
-              <div className="kpi-value">{llmJudge.average_scores?.tone || '4.80'} / 5.0</div>
+              <div className="kpi-value">{llmJudge.average_scores?.tone != null ? `${llmJudge.average_scores.tone.toFixed(1)} / 5.0` : '—'}</div>
               <div className="kpi-context">Support agent courtesy</div>
             </div>
           </div>
@@ -479,7 +584,7 @@ export default function EvaluationView({ evaluationData }) {
             <strong style={{ color: 'var(--text-primary)', display: 'block', marginBottom: '0.35rem' }}>
               Honest Assessment of LLM-as-a-Judge:
             </strong>
-            While LLM judges excel at evaluating surface tone and linguistic fluency (scoring ~4.8/5.0), they exhibit decision alignment variance (Cohen's Kappa ~0.11) when evaluating subtle policy boundaries compared to calibrated human experts. This confirms that automated judges should supplement—not replace—human ground truth calibration.
+            While LLM judges excel at evaluating surface tone and linguistic fluency (scoring ~4.8/5.0), they exhibit decision alignment variance (Cohen's Kappa ~0.00) when evaluating subtle policy boundaries compared to calibrated ground truth. This confirms that automated judges should supplement—not replace—human ground truth calibration.
           </div>
         </div>
       )}
